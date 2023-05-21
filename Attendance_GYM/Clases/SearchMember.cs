@@ -1,13 +1,17 @@
-﻿using Npgsql;
+﻿using Newtonsoft.Json;
+using Npgsql;
 using System;
-using System.Collections.Generic;
+using System.Net.Http;
+using System.Text;
 using System.Windows.Forms;
 
 namespace Attendance_GYM.Clases
 {
     public class SearchMember
     {
-        public void searchMember(TextBox txtKey, TextBox txtName)
+        private const string apiURL = "http://localhost:8080/visits_woa/visits";
+
+        public async void searchMember(TextBox txtKey, TextBox txtName)
         {
             Connection objectConn = new Connection();
 
@@ -17,7 +21,7 @@ namespace Attendance_GYM.Clases
             {
                 conn.Open();
 
-                string query = "SELECT members.name FROM members WHERE members.key = '" + txtKey.Text + "';";
+                string query = "SELECT members.name, members.id, members.\"tenantId\" FROM members WHERE members.key = '" + txtKey.Text + "';";
 
                 NpgsqlCommand cmd = new NpgsqlCommand(query, conn);
                 NpgsqlDataReader reader = cmd.ExecuteReader();
@@ -27,6 +31,33 @@ namespace Attendance_GYM.Clases
                     while (reader.Read())
                     {
                         txtName.Text = reader[0].ToString();
+                        int id = Convert.ToInt32(reader[1]);
+                        string uniqueTenant = reader[2].ToString();
+
+                        var visitData = new
+                        {
+                            visitDate = DateTime.Now,
+                            tenantId = uniqueTenant,
+                            memberId = id
+                        };
+
+                        Uri RequestUri = new Uri(apiURL);
+
+                        var client = new HttpClient();
+                        var json = JsonConvert.SerializeObject(visitData);
+                        var contentJson = new StringContent(json, Encoding.UTF8, "application/json");
+                        var response = await client.PostAsync(RequestUri, contentJson);
+
+                        Console.WriteLine(response);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            MessageBox.Show("Visita registrada");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Ocurrió un problema al registrar la visita");
+                        }
                     }
                 } else
                 {
