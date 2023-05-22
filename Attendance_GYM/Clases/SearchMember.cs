@@ -56,7 +56,10 @@ namespace Attendance_GYM.Clases
                         }
                         else
                         {
-                            MessageBox.Show("Ocurrió un problema al registrar la visita");
+                            string errorContent = await response.Content.ReadAsStringAsync();
+                            ErrorMessage errorMessage = JsonConvert.DeserializeObject<ErrorMessage>(errorContent);
+
+                            MessageBox.Show(errorMessage.message);
                         }
                     }
                 } else
@@ -70,4 +73,10 @@ namespace Attendance_GYM.Clases
             }
         }
     }
+
+    public class ErrorMessage
+    {
+        public string message { get; set; }
+    }
+
 }
